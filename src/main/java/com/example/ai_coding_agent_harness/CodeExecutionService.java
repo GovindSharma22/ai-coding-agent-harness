@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.nio.file.attribute.PosixFilePermissions;
+
 
 @Service
 public class CodeExecutionService {
@@ -56,14 +58,27 @@ public class CodeExecutionService {
     String containerName = "ai-code-run-" +
       UUID.randomUUID().toString().replace("-", "");
 
+
     Path workspace =
       Files.createTempDirectory("ai-code-execution-");
 
     try {
+      Files.setPosixFilePermissions(
+        workspace,
+        PosixFilePermissions.fromString("rwxr-xr-x")
+      );
+
+      Path sourceFile = workspace.resolve(fileName);
+
       Files.writeString(
-        workspace.resolve(fileName),
+        sourceFile,
         code,
         StandardCharsets.UTF_8
+      );
+
+      Files.setPosixFilePermissions(
+        sourceFile,
+        PosixFilePermissions.fromString("rw-r--r--")
       );
 
       ProcessBuilder builder = new ProcessBuilder(
@@ -96,7 +111,6 @@ public class CodeExecutionService {
       builder.redirectErrorStream(true);
       Process process = builder.start();
 
-      // Drain output concurrently to prevent pipe-buffer deadlocks.
       CompletableFuture<String> outputFuture =
         CompletableFuture.supplyAsync(() -> {
           try (InputStream input = process.getInputStream();
@@ -108,13 +122,11 @@ public class CodeExecutionService {
             boolean truncated = false;
 
             while ((bytesRead = input.read(buffer)) != -1) {
-              int remaining =
-                MAX_OUTPUT_BYTES - captured.size();
+              int remaining = MAX_OUTPUT_BYTES - captured.size();
 
               if (remaining > 0) {
                 captured.write(
-                  buffer, 0,
-                  Math.min(bytesRead, remaining)
+                  buffer, 0, Math.min(bytesRead, remaining)
                 );
               }
 
@@ -127,8 +139,7 @@ public class CodeExecutionService {
               captured.toString(StandardCharsets.UTF_8);
 
             if (truncated) {
-              output +=
-                "\n[Output truncated: 64 KB limit reached]";
+              output += "\n[Output truncated: 64 KB limit reached]";
             }
 
             return output;
@@ -139,13 +150,13 @@ public class CodeExecutionService {
         });
 
       boolean finished = process.waitFor(
-        TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        TIMEOUT_SECONDS, TimeUnit.SECONDS
+      );
 
       if (!finished) {
         process.destroyForcibly();
         process.waitFor();
 
-        // Request explicit container cleanup if Docker is still running.
         try {
           Process cleanupProcess = new ProcessBuilder(
             DOCKER, "rm", "--force", containerName
@@ -187,6 +198,7 @@ public class CodeExecutionService {
     } finally {
       deleteWorkspace(workspace);
     }
+
   }
 
   private void deleteWorkspace(Path workspace) throws IOException {
