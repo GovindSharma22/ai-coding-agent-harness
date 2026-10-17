@@ -106,16 +106,19 @@ The latest recorded development test run completed with **18 tests passed, zero 
 
 ## API Endpoints
 
+
 | Method | Endpoint | Purpose |
 |---|---|---|
+| GET | `/api/agent/health` | Check application health |
 | POST | `/api/agent/tasks` | Submit a coding task |
 | POST | `/api/agent/code` | Generate Java code |
 | POST | `/api/agent/verify` | Generate code and verify compilation |
 | POST | `/api/agent/code/auto-fix` | Generate code and attempt compilation repairs |
-| POST | `/api/agent/code/run` | Generate, verify, and execute code |
+| POST | `/api/agent/code/run` | Generate and verify code (as currently implemented) |
 | POST | `/api/agent/execute` | Execute supplied Java code |
 | POST | `/api/agent/execute/verify?expectedOutput=Hello%20World` | Execute supplied code and compare output |
 | POST | `/api/agent/code/run/verify` | Generate, compile, execute, compare output, and retry repairs |
+
 
 ### Example: Generate, Execute, and Verify Code
 
@@ -151,6 +154,7 @@ This response is illustrative; actual generated code, explanation, output, and a
 
 ### Example: Generate Java Code
 
+
 **Endpoint:** `POST /api/agent/code`
 
 Request:
@@ -162,6 +166,32 @@ Request:
 ```
 
 The endpoint returns the generated Java filename, source code, and explanation.
+
+### Example: Execute and Verify Supplied Java Code
+
+**Endpoint:** `POST /api/agent/execute/verify?expectedOutput=Hello%20World`
+
+Request:
+
+```json
+{
+  "fileName": "HelloWorld.java",
+  "code": "public class HelloWorld { public static void main(String[] args) { System.out.println(\"Hello World\"); } }",
+  "explanation": "Prints Hello World."
+}
+```
+
+Successful response:
+
+```json
+{
+  "fileName": "HelloWorld.java",
+  "successful": true,
+  "status": "VERIFIED",
+  "output": "Hello World\n",
+  "message": "Program output matches the expected output."
+}
+```
 
 ## Input Validation
 
