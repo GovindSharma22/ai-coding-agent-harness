@@ -1,5 +1,5 @@
 
-name: Java CI
+name: CI
 
 on:
   push:
@@ -15,12 +15,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 21
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
 
+      - name: Pull Docker execution image
+        run: docker pull eclipse-temurin:21-jdk
+
       - name: Run tests
-        run: chmod +x mvnw && ./mvnw --batch-mode test
+        run: ./mvnw --batch-mode test
