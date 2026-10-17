@@ -17,8 +17,8 @@ import java.util.concurrent.TimeUnit;
 public class CodeExecutionService {
 
   private static final String IMAGE = "eclipse-temurin:21-jdk";
-  private static final String DOCKER =
-    "/Applications/Docker.app/Contents/Resources/bin/docker";
+
+  private static final String DOCKER = "docker";
 
   private static final long TIMEOUT_SECONDS = 20;
   private static final long MAX_SOURCE_BYTES = 100 * 1024;
